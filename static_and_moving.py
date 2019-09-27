@@ -3,6 +3,7 @@ from camera import *
 SCALE = 0.15
 WIDTH = 210  # 1400 * SCALE
 START = 15
+max_height = 6800 * SCALE
 
 class Text_tk(Text):
     def __init__(self, parent=None, **config):
@@ -37,7 +38,6 @@ class Canvas_ball(Canvas):
         coordx *= SCALE
         coordy *= SCALE
         radius *= SCALE
-        max_height = 6800 * SCALE
         return self.create_oval(START+coordx-radius, max_height-coordy-radius, START+coordx+radius,
                                 max_height-coordy+radius, **config)
 
@@ -55,20 +55,41 @@ class Example(Frame):
         self.information_field.pack(side=RIGHT, expand=1, fill=BOTH)
 
         self.canvas.focus_set()
-        self.canvas.bind('<Left>', self.move_left)
-        self.canvas.bind('<Right>', self.move_right)
+
+        # Binding buttons
+        self.canvas.bind('<Left>', lambda event: self.move_left(self.canvas.moving_ball))
+        self.canvas.bind('<Right>', lambda event: self.move_right(self.canvas.moving_ball))
+        self.canvas.bind('<Up>', lambda event: self.move_up(self.canvas.moving_ball))
+        self.canvas.bind('<Down>', lambda event: self.move_down(self.canvas.moving_ball))
+        self.canvas.bind('a', lambda event: self.move_left(self.canvas.static_ball))
+        self.canvas.bind('d', lambda event: self.move_right(self.canvas.static_ball))
+        self.canvas.bind('w', lambda event: self.move_up(self.canvas.static_ball))
+        self.canvas.bind('s', lambda event: self.move_down(self.canvas.static_ball))
+
         self.dict_lines = {'left': [], 'central': [], 'right': []}
         self.camera_vision()
 
-    def move_right(self, event):
-        if self.canvas.coords(self.canvas.moving_ball)[2] <= START + WIDTH:
-            self.canvas.move(self.canvas.moving_ball, 1.5, 0)
+    def move_right(self, ball):
+        if self.canvas.coords(ball)[2] <= START + WIDTH:
+            self.canvas.move(ball, 1.5, 0)
             self.camera_vision()
             self.change_data()
 
-    def move_left(self, event):
-        if self.canvas.coords(self.canvas.moving_ball)[0] >= 15:
-            self.canvas.move(self.canvas.moving_ball, -1.5, 0)
+    def move_left(self, ball):
+        if self.canvas.coords(ball)[0] >= 15:
+            self.canvas.move(ball, -1.5, 0)
+            self.camera_vision()
+            self.change_data()
+
+    def move_up(self, ball):
+        if self.canvas.coords(ball)[1] >= 0:
+            self.canvas.move(ball, 0, -1.5)
+            self.camera_vision()
+            self.change_data()
+
+    def move_down(self, ball):
+        if self.canvas.coords(ball)[3] <= 210:
+            self.canvas.move(ball, 0, 1.5)
             self.camera_vision()
             self.change_data()
 
@@ -111,68 +132,76 @@ class Example(Frame):
 
         def draw_raws(zero_point_x, zero_point_y, camera):
             # mb - moving ball, sb - static ball
-            mb_position = self.canvas.coords(self.canvas.moving_ball)
-            mb_left_x = mb_position[0]
-            mb_left_y = mb_position[1] + 3
-            mb_right_x = mb_position[2]
-            mb_right_y = mb_position[3] - 3
+            if self.canvas.coords(self.canvas.moving_ball)[1] >= self.canvas.coords(self.canvas.static_ball)[1]:
+                m_position = self.canvas.coords(self.canvas.moving_ball)
+                s_position = self.canvas.coords(self.canvas.static_ball)
+            else:
+                m_position = self.canvas.coords(self.canvas.static_ball)
+                s_position = self.canvas.coords(self.canvas.moving_ball)
+
+            mb_left_x = m_position[0]
+            mb_left_y = m_position[1] + 3
+            mb_right_x = m_position[2]
+            mb_right_y = m_position[3] - 3
             mb_center_y = mb_left_y
             mb_center_x = mb_left_x + 3
 
-            sb_position = self.canvas.coords(self.canvas.static_ball)
-            sb_left_x = sb_position[0]
-            sb_left_y = sb_position[1] + 3
-            sb_right_x = sb_position[2]
-            sb_right_y = sb_position[3] - 3
+            sb_left_x = s_position[0]
+            sb_left_y = s_position[1] + 3
+            sb_right_x = s_position[2]
+            sb_right_y = s_position[3] - 3
             sb_center_x = sb_left_x + 3
             sb_center_y = sb_left_y
 
             if camera.lower() == 'left':
-                endPoint = 140
+                endPoint = 210
                 color = 'black'
             elif camera.lower() == 'right':
-                endPoint = 105
+                endPoint = 15
                 color = 'green'
             elif camera.lower() == 'central':
                 color = 'red'
                 if mb_center_x < zero_point_x:
-                    endPoint = 105
+                    endPoint = 15
                 elif mb_center_x == zero_point_x:
                     endPoint = mb_center_x
                 else:
-                    endPoint = 140
+                    endPoint = 210
             else:
                 return False
 
             for i in self.dict_lines[camera]:
                 self.canvas.delete(i)
 
-            if point_triangle(zero_point_x, zero_point_y, sb_left_x, sb_left_y,
-                              sb_right_x, sb_right_y, mb_right_x, mb_right_y):
+            if point_triangle(zero_point_x, zero_point_y, sb_left_x, sb_left_y, sb_right_x, sb_right_y,
+                              mb_right_x, mb_right_y):
 
-                object_coord = [[(mb_left_x + sb_right_x) / 2 - START - WIDTH/2, 6000]]
+                object_coord = [[(mb_left_x + sb_right_x) / 2 - START - WIDTH/2, max_height - min(sb_center_y,
+                                                                                                  mb_center_y)]]
                 center_mask_obj = [(mb_left_x + sb_right_x) / 2, (mb_left_y + sb_right_y) / 2]
                 k, b = eq_line(zero_point_x, zero_point_y, center_mask_obj[0], center_mask_obj[1])
-                self.dict_lines[camera] = [self.canvas.create_line(zero_point_x, zero_point_y, endPoint, endPoint * k + b,
-                                                 dash=(2, 2), fill=color)]
+                self.dict_lines[camera] = [self.canvas.create_line(zero_point_x, zero_point_y, endPoint,
+                                                                   endPoint * k + b, dash=(2, 2), fill=color)]
 
-            elif point_triangle(zero_point_x, zero_point_y, sb_left_x, sb_left_y,
-                                sb_right_x, sb_right_y, mb_left_x, mb_left_y):
+            elif point_triangle(zero_point_x, zero_point_y, sb_left_x, sb_left_y, sb_right_x, sb_right_y,
+                                mb_left_x, mb_left_y):
 
-                object_coord = [[(mb_right_x + sb_left_x) / 2 - START - WIDTH/2, 6000]]
+                object_coord = [[(mb_right_x + sb_left_x) / 2 - START - WIDTH/2, max_height - min(sb_center_y,
+                                                                                                  mb_center_y)]]
                 center_mask_obj = [(mb_right_x + sb_left_x) / 2, (mb_right_y + sb_left_y) / 2]
                 k, b = eq_line(zero_point_x, zero_point_y, center_mask_obj[0], center_mask_obj[1])
-                self.dict_lines[camera] = [self.canvas.create_line(zero_point_x, zero_point_y, endPoint, endPoint * k + b,
-                                                 dash=(2, 2), fill=color)]
+                self.dict_lines[camera] = [self.canvas.create_line(zero_point_x, zero_point_y, endPoint,
+                                                                   endPoint * k + b, dash=(2, 2), fill=color)]
 
-            elif point_triangle(zero_point_x, zero_point_y, sb_left_x, sb_left_y,
-                                sb_right_x, sb_right_y, mb_center_x, mb_center_y):
+            elif point_triangle(zero_point_x, zero_point_y, sb_left_x, sb_left_y, sb_right_x, sb_right_y,
+                                mb_center_x, mb_center_y):
 
-                object_coord = [[mb_center_x - START - WIDTH/2, 6000]]
+                object_coord = [[mb_center_x - START - WIDTH/2, max_height - min(sb_center_y, mb_center_y)]]
                 self.dict_lines[camera] = [self.canvas.create_line(zero_point_x, zero_point_y, mb_center_x, mb_center_y,
-                                                 dash=(2, 2), fill=color)]
+                                                                   dash=(2, 2), fill=color)]
             else:
-                object_coord = [[mb_center_x - START - WIDTH/2, 6000], [mb_center_y - START - WIDTH/2, 6600]]
+                object_coord = [[mb_center_x - START - WIDTH/2, max_height - mb_center_y],
+                                [mb_center_y - START - WIDTH/2, max_height - sb_center_y]]
                 self.dict_lines[camera] = [self.canvas.create_line(zero_point_x, zero_point_y, mb_center_x, mb_center_y,
                                                                    dash=(2, 2), fill=color),
                                            self.canvas.create_line(zero_point_x, zero_point_y, sb_center_x, sb_center_y,
@@ -195,16 +224,20 @@ class Example(Frame):
                               0.24074074074074073, 0.18518518518518517, 0.07407407407407407, 0.018518518518518517)
 
         # Формирование данных камеры, детектируюя положение луча центра объекта
-        left_camera.data = [pixel_in_camera(x[1], x[0]/SCALE, -700) for x in self.left_ray_coord]
-        right_camera.data = [pixel_in_camera(x[1], x[0]/SCALE, 700) for x in self.right_ray_coord]
-        central_camera.data = [pixel_in_camera(x[1], x[0]/SCALE, 0) for x in self.central_ray_coord]
+        left_camera.data = [pixel_in_camera(x[1]/SCALE, x[0]/SCALE, -700) for x in self.left_ray_coord]
+        right_camera.data = [pixel_in_camera(x[1]/SCALE, x[0]/SCALE, 700) for x in self.right_ray_coord]
+        central_camera.data = [pixel_in_camera(x[1]/SCALE, x[0]/SCALE, 0) for x in self.central_ray_coord]
 
         D, detection_wires = bypass(left_camera, central_camera, right_camera)
 
-        mb_center_x = self.canvas.coords(self.canvas.moving_ball)[0] + 3
-        self.information_field.new_text(1.0, "Координаты подвижного провода: H - {0}, L - {1}\n".format(6000,
-                                                                            int(abs(120 - mb_center_x)/SCALE)))
-        self.information_field.new_text(2.0, "\nКоординаты статичного провода: H - {0}, L - {1}".format(6600, 0))
+        mb_center_x = (self.canvas.coords(self.canvas.moving_ball)[0] + 3 - START)
+        mb_center_y = max_height - self.canvas.coords(self.canvas.moving_ball)[1] - 3
+        sb_center_x = (self.canvas.coords(self.canvas.static_ball)[0] + 3 - START)
+        sb_center_y = max_height - self.canvas.coords(self.canvas.static_ball)[1] - 3
+        self.information_field.new_text(1.0, "Координаты зеленого объекта: H - {0}, L - {1}\n".format(mb_center_y/SCALE,
+                                                                            int(abs(WIDTH/2 - mb_center_x)/SCALE)))
+        self.information_field.new_text(2.0, "\nКоординаты черного объекта: H - {0}, L - {1}".format(sb_center_y/SCALE,
+                                                                            int(abs(WIDTH/2 - sb_center_x)/SCALE)))
         self.information_field.new_text(3.0, "\nОбнаруженных объектов = {0}".format(detection_wires))
         self.information_field.new_text(4.0, "\nКоличество объектов левой камеры - {}".format(len(left_camera.data)))
         self.information_field.new_text(5.0, "\nКоличество объектов центральной камеры - {}".format(len(central_camera.data)))
@@ -218,7 +251,7 @@ class Example(Frame):
 def main():
     root = Tk()
     ex = Example(root)
-    root.geometry("480x1020")
+    root.geometry("700x1020")
     root.mainloop()
 
 

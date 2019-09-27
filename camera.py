@@ -32,11 +32,9 @@ class Det_obj:
         self.eps = 0
 
     def find_h(self, cam1, cam3):
-        print(cam1, cam3)
         self.h = int(BASE/(cam1 + cam3))
 
     def find_zigzag(self, cam1, cam3):
-        print(cam1, cam3)
         self.zigzag = int(self.h * (cam1 - cam3)/2)
 
 def bypass(cam1, cam2, cam3):
