@@ -18,13 +18,26 @@ class Camera:
                          [1, self.data_cal[1], self.data_cal[1]**2, self.data_cal[1]**3],
                          [1, self.data_cal[2], self.data_cal[2]**2, self.data_cal[2]**3],
                          [1, self.data_cal[3], self.data_cal[3]**2, self.data_cal[3]**3]])
-
             b = np.array([self.tg[0], self.tg[1], self.tg[2], self.tg[3]])
         except IndexError:
             print("Неверно записаны данные. Создайте новый инстанс")
             del self
         else:
             return list(np.linalg.solve(a, b))
+
+class Det_obj:
+    def __init__(self):
+        self.h = 0
+        self.zigzag = 0
+        self.eps = 0
+
+    def find_h(self, cam1, cam3):
+        print(cam1, cam3)
+        self.h = int(BASE/(cam1 + cam3))
+
+    def find_zigzag(self, cam1, cam3):
+        print(cam1, cam3)
+        self.zigzag = int(self.h * (cam1 - cam3)/2)
 
 def bypass(cam1, cam2, cam3):
     camera1 = list()
@@ -46,19 +59,23 @@ def bypass(cam1, cam2, cam3):
             cam3.data[i] ** 3)
 
     while True:
-        detection_wires = 0
+        amount_obj = 0
+        D = dict()  # Словарь классов, которые хранят информацию о проводе
         relative_eps = eps/H_AVR
 
         for i in range(len(cam1.data)):
             for j in range(len(cam2.data)):
                 for k in range(len(cam3.data)):
                     if abs(camera2[j] - (camera3[k] - camera1[i])/2) <= relative_eps:
-                        detection_wires += 1
-
-        if detection_wires >= 2 or relative_eps == MSX_EPS:
+                        D[amount_obj] = Det_obj()
+                        D[amount_obj].find_h(camera1[i], camera3[k])
+                        D[amount_obj].find_zigzag(camera1[i], camera3[k])
+                        D[amount_obj].eps = eps*H_AVR
+                        amount_obj += 1
+        if amount_obj >= 2 or relative_eps == MSX_EPS:
             break
         eps += 1
-    return detection_wires
+    return D, amount_obj
 
 def pixel_in_camera(H, l, x):
     """

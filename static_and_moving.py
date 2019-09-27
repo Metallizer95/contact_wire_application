@@ -24,10 +24,10 @@ class Canvas_ball(Canvas):
         self.static_ball = self.create_circle(700, 6600, 20, fill='black')
 
     def draw_camera(self):
-        half_widht_camera = 10
-        self.create_rectangle(START - half_widht_camera, 1000, START + half_widht_camera, 1020)                         # Left camera
-        self.create_rectangle(START + WIDTH - half_widht_camera, 1000, START + WIDTH + half_widht_camera, 1020)         # Right camera
-        self.create_rectangle(START + WIDTH/2 - half_widht_camera, 1000, START + WIDTH/2 + half_widht_camera, 1020)     # Central camera
+        half_width_camera = 10
+        self.create_rectangle(START - half_width_camera, 1000, START + half_width_camera, 1020)                         # Left camera
+        self.create_rectangle(START + WIDTH - half_width_camera, 1000, START + WIDTH + half_width_camera, 1020)         # Right camera
+        self.create_rectangle(START + WIDTH/2 - half_width_camera, 1000, START + WIDTH/2 + half_width_camera, 1020)     # Central camera
 
     def create_border(self):
         self.create_line(START, 0, START, 1000, fill='black', width=2)
@@ -116,7 +116,7 @@ class Example(Frame):
             mb_left_y = mb_position[1] + 3
             mb_right_x = mb_position[2]
             mb_right_y = mb_position[3] - 3
-            mb_center_y = mb_left_y + 3
+            mb_center_y = mb_left_y
             mb_center_x = mb_left_x + 3
 
             sb_position = self.canvas.coords(self.canvas.static_ball)
@@ -125,7 +125,7 @@ class Example(Frame):
             sb_right_x = sb_position[2]
             sb_right_y = sb_position[3] - 3
             sb_center_x = sb_left_x + 3
-            sb_center_y = sb_left_y + 3
+            sb_center_y = sb_left_y
 
             if camera.lower() == 'left':
                 endPoint = 140
@@ -150,7 +150,7 @@ class Example(Frame):
             if point_triangle(zero_point_x, zero_point_y, sb_left_x, sb_left_y,
                               sb_right_x, sb_right_y, mb_right_x, mb_right_y):
 
-                object_coord = [[(mb_left_x + sb_right_x) / 2, 6000*SCALE]]
+                object_coord = [[(mb_left_x + sb_right_x) / 2 - START - WIDTH/2, 6000]]
                 center_mask_obj = [(mb_left_x + sb_right_x) / 2, (mb_left_y + sb_right_y) / 2]
                 k, b = eq_line(zero_point_x, zero_point_y, center_mask_obj[0], center_mask_obj[1])
                 self.dict_lines[camera] = [self.canvas.create_line(zero_point_x, zero_point_y, endPoint, endPoint * k + b,
@@ -159,7 +159,7 @@ class Example(Frame):
             elif point_triangle(zero_point_x, zero_point_y, sb_left_x, sb_left_y,
                                 sb_right_x, sb_right_y, mb_left_x, mb_left_y):
 
-                object_coord = [[(mb_right_x + sb_left_x) / 2, 6000 * SCALE]]
+                object_coord = [[(mb_right_x + sb_left_x) / 2 - START - WIDTH/2, 6000]]
                 center_mask_obj = [(mb_right_x + sb_left_x) / 2, (mb_right_y + sb_left_y) / 2]
                 k, b = eq_line(zero_point_x, zero_point_y, center_mask_obj[0], center_mask_obj[1])
                 self.dict_lines[camera] = [self.canvas.create_line(zero_point_x, zero_point_y, endPoint, endPoint * k + b,
@@ -168,11 +168,11 @@ class Example(Frame):
             elif point_triangle(zero_point_x, zero_point_y, sb_left_x, sb_left_y,
                                 sb_right_x, sb_right_y, mb_center_x, mb_center_y):
 
-                object_coord = [[mb_center_x, 6000 * SCALE]]
+                object_coord = [[mb_center_x - START - WIDTH/2, 6000]]
                 self.dict_lines[camera] = [self.canvas.create_line(zero_point_x, zero_point_y, mb_center_x, mb_center_y,
                                                  dash=(2, 2), fill=color)]
             else:
-                object_coord = [[mb_center_x, 6000 * SCALE], [mb_center_y, 6600*SCALE]]
+                object_coord = [[mb_center_x - START - WIDTH/2, 6000], [mb_center_y - START - WIDTH/2, 6600]]
                 self.dict_lines[camera] = [self.canvas.create_line(zero_point_x, zero_point_y, mb_center_x, mb_center_y,
                                                                    dash=(2, 2), fill=color),
                                            self.canvas.create_line(zero_point_x, zero_point_y, sb_center_x, sb_center_y,
@@ -195,11 +195,11 @@ class Example(Frame):
                               0.24074074074074073, 0.18518518518518517, 0.07407407407407407, 0.018518518518518517)
 
         # Формирование данных камеры, детектируюя положение луча центра объекта
-        left_camera.data = [pixel_in_camera(x[1]/SCALE, x[0], -700) for x in self.left_ray_coord]
-        right_camera.data = [pixel_in_camera(x[1]/SCALE, x[0], 700) for x in self.right_ray_coord]
-        central_camera.data = [pixel_in_camera(x[1]/SCALE, x[0], 0) for x in self.central_ray_coord]
+        left_camera.data = [pixel_in_camera(x[1], x[0]/SCALE, -700) for x in self.left_ray_coord]
+        right_camera.data = [pixel_in_camera(x[1], x[0]/SCALE, 700) for x in self.right_ray_coord]
+        central_camera.data = [pixel_in_camera(x[1], x[0]/SCALE, 0) for x in self.central_ray_coord]
 
-        detection_wires = bypass(left_camera, central_camera, right_camera)
+        D, detection_wires = bypass(left_camera, central_camera, right_camera)
 
         mb_center_x = self.canvas.coords(self.canvas.moving_ball)[0] + 3
         self.information_field.new_text(1.0, "Координаты подвижного провода: H - {0}, L - {1}\n".format(6000,
@@ -209,6 +209,11 @@ class Example(Frame):
         self.information_field.new_text(4.0, "\nКоличество объектов левой камеры - {}".format(len(left_camera.data)))
         self.information_field.new_text(5.0, "\nКоличество объектов центральной камеры - {}".format(len(central_camera.data)))
         self.information_field.new_text(6.0, "\nКоличество объектов правой камеры - {}".format(len(right_camera.data)))
+        for wire in list(range(detection_wires)):
+            self.information_field.insert(7.0 + float(wire),
+                                          "\nОбъект {0}: Измеренные Зигзаг - {1}; Высота - {2}".format(wire + 1,
+                                                                                                       D[wire].zigzag,
+                                                                                                       D[wire].h))
 
 def main():
     root = Tk()
