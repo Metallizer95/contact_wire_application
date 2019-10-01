@@ -70,7 +70,7 @@ def bypass(cam1, cam2, cam3):
                         D[amount_obj].find_zigzag(camera1[i], camera3[k])
                         D[amount_obj].eps = eps*H_AVR
                         amount_obj += 1
-        if amount_obj >= 2 or relative_eps == MSX_EPS:
+        if amount_obj >= 2 or eps == MSX_EPS:
             break
         eps += 1
     return D, amount_obj
@@ -87,13 +87,18 @@ def pixel_in_camera(H, l, x):
     size_pix = 0.008
 
     if x == 0:
-        return 1800 - int((F*l/H)/size_pix)
+        return 1800 - round((F*l/H)/size_pix)
     else:
         tg_alpha_beta = abs(h_cal/x)
         tg_alpha = abs(H/(x - l))
     tg_beta = (tg_alpha_beta - tg_alpha)/(tg_alpha_beta*tg_alpha - 1)
-    num_pix = int(tg_beta*F/size_pix)
+    num_pix = round(tg_beta*F/size_pix)
     if x < 0:
         return 1800 - num_pix
     else:
         return 1800 + num_pix
+
+if __name__ == '__main__':
+    H = 6000
+    print(pixel_in_camera(6000, -7, 0))
+    print(pixel_in_camera(6000, 7, 0))
