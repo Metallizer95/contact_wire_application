@@ -60,10 +60,11 @@ def bypass(cam1, cam2, cam3):
         amount_obj = 0
         D = dict()  # Словарь классов, которые хранят информацию о проводе
         relative_eps = eps/H_AVR
-
+        print('\n')
         for i in range(len(cam1.data)):
             for j in range(len(cam2.data)):
                 for k in range(len(cam3.data)):
+                    print('({0}, {1}, {2}) - {3}'.format(i,j,k,abs(camera2[j] - (camera3[k] - camera1[i])/2)))
                     if abs(camera2[j] - (camera3[k] - camera1[i])/2) <= relative_eps:
                         D[amount_obj] = Det_obj()
                         D[amount_obj].find_h(camera1[i], camera3[k])
