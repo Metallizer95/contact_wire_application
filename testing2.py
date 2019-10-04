@@ -1,67 +1,30 @@
 from math import sqrt
 import tkinter as tk
 
-height = 600
+height = 1000
 width = 800
-def in_circle(x, y, radius, a, b):
-    """
-    :param x: center coordinate of circle
-    :param y: center coordinate of circle
-    :param radius: circle radius
-    :param a: x coordinate of some point
-    :param b: y coordinate of some point
-    :return: True if point is in the circle or False if is not
-    """
-    if (x - a) ** 2 + (y - b) ** 2 <= radius ** 2:
-        return True
+
+def check_line_in_circle(circle, kLine, bLine):
+    a = circle[0]
+    b = circle[1]
+    k = kLine
+    d = bLine
+    r = circle[2]
+
+    xq = 1 + k**2
+    x = -2*a + 2*k*d - 2*k*b
+    fx = a**2 + d**2 + b**2 - 2*b*d - r**2
+    solve = solve_square_equal(xq, x, fx)
+    if not solve:
+        return solve
+    elif len(solve) == 1:
+        return 1, solve[0], k*solve[0] + d
     else:
-        return False
-
-
-def all_point_circle(x, y, radius):
-    """
-    :param x: center coordinate of circle
-    :param y: center coordinate of circle
-    :param radius: circle radius
-    :return: points y axes depend of x
-    """
-    points_x = list()
-    points_y = dict()
-    z = x - radius
-    while z <= x + radius:
-        points_x.append(z)
-        z += 1
-    for i in points_x:
-        a = 1
-        b = -2 * y
-        c = i**2 - 2*i*x + x**2 + y**2 - radius**2
-        points_y[i] = solve_square_equal(a, b, c)
-    print(len(points_y))
-    return points_y
-
-
-def point_in_circle(circle, k, b):
-    x = circle[0]
-    y = circle[1]
-    radius = circle[2]
-    yPoints = all_point_circle(x, y, radius)
-    xLine = list()
-    yLine = list()
-    z = x - radius
-    while z <= x + radius:
-        xLine.append(z)
-        z += 1
-    point = 0
-    for i in yPoints.keys():
-        yLine.append(k*xLine[point] + b)
-        if len(yPoints[i]) == 1:
-            if round(yPoints[i][0]) == round(yLine[point]):
-                return [True,  yPoints[i][0]]
-        else:
-            if min(yPoints[i]) <= yLine[point] <= max(yPoints[i]):
-                return [True, min(yPoints[i])]
-        point += 1
-    return [False]
+        y1 = solve[0] * k + d
+        y2 = solve[1] * k + d
+        yMin = max(y1, y2)
+        xMin = (yMin - d)/k
+        return 2, xMin, yMin
 
 def solve_square_equal(a, b, c):
     """
@@ -70,10 +33,10 @@ def solve_square_equal(a, b, c):
     :param c: free multiplier
     :return: solving of square equal
     """
-    D = b ** 2 - 4 * a * c
+    D = b**2 - 4*a*c
     if D < 0:
         return False
-    elif D == 0:
+    elif round(D, 2) == 0:
         return [-b / (2 * a)]
     else:
         return [(-b + sqrt(D)) / (2 * a), (-b - sqrt(D)) / (2 * a)]
@@ -113,14 +76,23 @@ class Create_Canvas(tk.Canvas):
             ray_y = zero_y - 500
             left_ray_x = zero_x - 500 * 1.71  # 1.71 - tg60 = sqrt(3)
             right_ray_x = zero_y + 500 * 1.71
+
+            draw_points = set()
+            solve = set()
             while left_ray_x <= right_ray_x:
                 k, b = equationLine(zero_x, zero_y, left_ray_x, ray_y)
-                test = point_in_circle(self.all_circles[1], k, b)
-                if not test[0]:
-                    self.create_line(zero_x, zero_y, left_ray_x, ray_y, fill='yellow')
-                else:
-                    self.create_line(zero_x, zero_y, left_ray_x, test[1])
-                left_ray_x += 4
+                if k == 0:
+                    left_ray_x += 0.001
+                    continue
+                for key in self.all_circles:
+                    solve.add(check_line_in_circle(self.all_circles[key], k, b))
+                left_ray_x += 3
+
+            for i in solve:
+                if i:
+                    draw_points.add(i)
+            for i in draw_points:
+                self.create_line(zero_x, zero_y, i[1], i[2], fill='black')
 
 
 class Create_Frame(tk.Frame):
@@ -129,8 +101,11 @@ class Create_Frame(tk.Frame):
         self.pack()
         canvas = Create_Canvas(width=width, height=height)
         canvas.pack()
-        canvas.create_circle(200, 400, 40, fill='red')
-        canvas.create_camera(300, 10, 10)
+        canvas.create_circle(300, 800, 80, fill='red')
+        canvas.create_circle(600, 800, 80, fill='red')
+        canvas.create_camera(100, 10, 10)
+        canvas.create_camera(400, 10, 10)
+        canvas.create_camera(700,10,10)
         canvas.rays_of_camera()
 
 
