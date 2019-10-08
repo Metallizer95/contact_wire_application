@@ -101,11 +101,11 @@ class Create_Frame(tk.Frame):
         self.pack()
         canvas = Create_Canvas(width=width, height=height)
         canvas.pack()
-        canvas.create_circle(300, 800, 80, fill='red')
-        canvas.create_circle(600, 800, 80, fill='red')
+        canvas.create_circle(300, 600, 40, fill='red')
+        canvas.create_circle(350, 800, 40, fill='red')
         canvas.create_camera(100, 10, 10)
         canvas.create_camera(400, 10, 10)
-        canvas.create_camera(700,10,10)
+        canvas.create_camera(700, 10, 10)
         canvas.rays_of_camera()
 
 
