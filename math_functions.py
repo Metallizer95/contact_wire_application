@@ -43,17 +43,19 @@ def check_line_in_circle(circle, kLine, bLine):
     k = kLine
     d = bLine
 
-    x2 = 1 + k ** 2
-    x = -2 * a + 2 * k * d - 2 * k * b
-    c = a ** 2 + d ** 2 + b ** 2 - 2 * b * d - r ** 2
+    x2 = 1 + k**2
+    x = -2*a + 2*k*d - 2*k*b
+    c = a**2 + d**2 + b**2 - 2*b*d - r**2
     solve = solve_square_equal(x2, x, c)
     if not solve:
-        return solve
-    elif len(solve) == 1:
-        return solve[0], k * solve[0] + d
+        return False
     else:
-        y1 = solve[0] * k + d
-        y2 = solve[1] * k + d
-        yMin = max(y1, y2)
-        xMin = (yMin - d) / k
-        return xMin, yMin
+        return True
+    #elif len(solve) == 1:
+    #    return # solve[0], k * solve[0] + d
+    #else:
+    #    y1 = solve[0]*k + d
+    #    y2 = solve[1]*k + d
+    #    yMin = max(y1, y2)
+    #    xMin = (yMin - d) / k
+    #    return xMin, yMin

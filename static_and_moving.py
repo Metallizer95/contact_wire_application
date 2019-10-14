@@ -1,13 +1,9 @@
 from tkinter import *
 from camera import *
-import math_functions as mf
+from canvas_class import *
+import matplotlib.pyplot as plt
 
-SCALE = 0.15
-WIDTH = 210  # 1400 * SCALE
-START = 15
-max_height = 6800 * SCALE
-WIRE_WIDTH = 14 * SCALE
-threshold = WIRE_WIDTH / 2
+WIRE_WIDTH = 40
 
 
 class Text_tk(Text):
@@ -19,71 +15,61 @@ class Text_tk(Text):
         self.insert(row, text)
 
 
-class Canvas_ball(Canvas):
-    """
-    Все размеры принимаются в мм, масштабирование происходит внутри класса
-    """
-
-    def __init__(self, parent=None, **config):
-        Canvas.__init__(self, parent, width=240, **config)
-
-    def create_border(self):
-        self.create_line(START, 0, START, 1000, fill='black', width=2)
-        self.create_line(START + WIDTH, 0, START + WIDTH, 1000, fill='black', width=2)
-
-    def create_circle(self, xCord, yCord, radius, **config):
-        xCord = START + WIDTH / 2 + xCord * SCALE
-        yCord = max_height - yCord * SCALE
-        xLeft = xCord - radius
-        yLeft = yCord - radius
-        xRight = xCord + radius
-        yRight = yCord + radius
-        circle = self.create_oval(xLeft, yLeft, xRight, yRight, **config)
-        return circle, [xCord, yCord, radius]
-
-    def draw_camera(self, xCenter, yCenter, h, w, **config):
-        yCenter = max_height - yCenter * SCALE
-        xCenter = START + WIDTH / 2 + xCenter * SCALE
-        xLeft = xCenter - SCALE*w/2
-        yLeft = yCenter - h*SCALE
-        xRight = xCenter + SCALE*w/2
-        yRight = yCenter
-        rectangle = self.create_rectangle(xLeft, yLeft, xRight, yRight, **config)
-        return rectangle, [xCenter, yLeft]
-
-
 class Example(Frame):
     def __init__(self, parent):
         Frame.__init__(self, parent)
         self.parent = parent
-        self.canvas = Canvas_ball(self)
+        self.canvas = Canvas_object(self, height=1020, width=240)
         self.information_field = Text_tk(self)
-        # Структуры для хранения данных о камерах и объектах
-        self.all_circle = dict()
-        self.all_camera = dict()
+
+        # Хэш таблицы всех камер и проводов
+        self.all_camera = {}
+        self.all_wire = {}
+
+        # Инициализация Users Interface
         self.initUI()
 
-
     def initUI(self):
+        # Размещение объектов на GUI
         self.pack(expand=1, fill=BOTH)
         self.canvas.pack(side=LEFT, expand=1, fill=Y)
         self.information_field.pack(side=RIGHT, expand=1, fill=BOTH)
-        moving_ball = self.create_ball(-600, 6000, WIRE_WIDTH / 2, fill='red')
-        static_ball = self.create_ball(0, 6600, WIRE_WIDTH / 2, fill='green')
-        self.create_camera(-700, 0, 75, 30)
-        self.create_camera(0, 0, 75, 30)
-        self.create_camera(700, 0, 75, 30)
+
+        # Создание объектов взаимодействия
+        self.moving_ball = self.create_wire(-600, 6000, WIRE_WIDTH / 2, fill='red')
+        self.static_ball = self.create_wire(0, 6600, WIRE_WIDTH / 2, fill='green')
+        self.create_camera(-600, 0, 10*29.184, 5*75, 45)
+        self.create_camera(0, 0, 29.184, 75, 0)
+        self.create_camera(600, 0, 29.184, 75, -8)
 
         # Binding buttons
         self.canvas.focus_set()
-        self.canvas.bind('<Left>', lambda event: self.move_left(moving_ball))
-        self.canvas.bind('<Right>', lambda event: self.move_right(moving_ball))
-        self.canvas.bind('<Up>', lambda event: self.move_up(moving_ball))
-        self.canvas.bind('<Down>', lambda event: self.move_down(moving_ball))
-        self.canvas.bind('a', lambda event: self.move_left(static_ball))
-        self.canvas.bind('d', lambda event: self.move_right(static_ball))
-        self.canvas.bind('w', lambda event: self.move_up(static_ball))
-        self.canvas.bind('s', lambda event: self.move_down(static_ball))
+        self.canvas.bind('<Left>', lambda event: self.move_left(self.moving_ball))
+        self.canvas.bind('<Right>', lambda event: self.move_right(self.moving_ball))
+        self.canvas.bind('<Up>', lambda event: self.move_up(self.moving_ball))
+        self.canvas.bind('<Down>', lambda event: self.move_down(self.moving_ball))
+        self.canvas.bind('a', lambda event: self.move_left(self.static_ball))
+        self.canvas.bind('d', lambda event: self.move_right(self.static_ball))
+        self.canvas.bind('w', lambda event: self.move_up(self.static_ball))
+        self.canvas.bind('s', lambda event: self.move_down(self.static_ball))
+
+        self.canvas.create_line(self.all_camera[0].zero_x, self.all_camera[0].zero_y,
+                                self.all_camera[0].xLeftRay, self.all_camera[0].yRay, fill='red')
+        self.canvas.create_line(self.all_camera[0].zero_x, self.all_camera[0].zero_y,
+                                self.all_camera[0].xRightRay, self.all_camera[0].yRay, fill='red')
+
+        # Передаем класс камеры, в котором хранится вся информация о камере
+        res1 = self.oscilloscope(list(self.all_camera.items())[0][1])
+        res2 = self.oscilloscope(list(self.all_camera.items())[1][1])
+        res3 = self.oscilloscope(list(self.all_camera.items())[2][1])
+        x = list(range(0, 3648, 1))
+        plt.subplot(3, 1, 1)
+        plt.plot(x, res1)
+        plt.subplot(3, 1, 2)
+        plt.plot(x, res2)
+        plt.subplot(3, 1, 3)
+        plt.plot(x, res3)
+        plt.show()
 
     def move_right(self, ball):
         if self.canvas.coords(ball)[2] <= START + WIDTH:
@@ -98,37 +84,20 @@ class Example(Frame):
             self.canvas.move(ball, 0, -0.75)
 
     def move_down(self, ball):
-        if self.canvas.coords(ball)[3] <= max_height - 5400 * SCALE:
+        if self.canvas.coords(ball)[3] <= MAX_H - 5400 * SCALE:
             self.canvas.move(ball, 0, 0.75)
 
-    def cameraVision(self):
-        self.objects = dict()
-        for camera in self.all_camera:
-            count_width = 0
-            zero_x = self.all_camera[camera][0]
-            zero_y = self.all_camera[camera][1]
-            yRay = zero_y - 500
-            xRayLeft = zero_y - 500 * 1.73205
-            xRayRight = zero_y + 500 * 1.73205
-            solve = set()
-            while xRayLeft <= xRayRight:
-                k, b = mf.equationLine(zero_x, zero_y, xRayLeft, yRay)
-                if k == 0:
-                    xRayLeft += 0.0001
-                    continue
-                m = list()
-                for key in self.all_circle:
-                    m.append(mf.check_line_in_circle(self.all_circle[key], k, b))
-                if m[0] is False and m[1] is False:
-                    if not (camera in self.objects.keys()):
-                        self.objects[camera] = list()
-                    solve = solve - {False}
-                    self.objects[camera].append()
-                    count_width = 0
-                else:
-                    solve.add(m[0])
-                    solve.add(m[1])
-                    count_width += 1
+    def oscilloscope(self, camera):
+        osc = []
+        coefs = self.canvas.move_ray(camera)
+        for item in coefs.keys():
+            if (mf.check_line_in_circle(self.all_wire[self.moving_ball].all_data, coefs[item][0], coefs[item][1]) or
+                    mf.check_line_in_circle(self.all_wire[self.static_ball].all_data, coefs[item][0], coefs[item][1])):
+                osc.append(1)
+            else:
+                osc.append(0)
+        osc.reverse()
+        return osc
 
     def change_data(self):
         """
@@ -168,15 +137,21 @@ class Example(Frame):
                                                                                                        D[wire].h))
         """
 
-    def create_ball(self, xCord, yCord, radius, **config):
-        ball = self.canvas.create_circle(xCord, yCord, radius, **config)
-        self.all_circle[ball[0]] = ball[1]
-        return ball[0]
+    def create_wire(self, xCord, yCord, radius, **config):
+        """
+        Функция построения на холсте объекта провод и запись его внутренних значений в хэш таблицу
+        """
+        wire = self.canvas.create_circle(xCord, yCord, radius, **config)
+        self.all_wire[wire[0]] = wire[1]
+        return wire[0]
 
-    def create_camera(self, xCenter, yCenter, h, w, **config):
-        camera = self.canvas.draw_camera(xCenter, yCenter, h, w, **config)
-        self.all_camera[camera[0]] = camera[1]
-        return camera[0]
+    def create_camera(self, xCenter, yCenter, w, h, angle, **config):
+        """
+        Функция построения на холсте объекта камера и запись характеристик в хэш таблицу
+        """
+        l = len(self.all_camera)
+        camera = self.canvas.create_camera(xCenter, yCenter, w, h, angle, **config)
+        self.all_camera[l] = camera[1]
 
 
 def main():

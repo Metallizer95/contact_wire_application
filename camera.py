@@ -9,18 +9,23 @@ BASE = 1400
 class Camera:
     def __init__(self, *args):
         temp = [i for i in args]
-        self.data = list()
-        self.data_cal = temp[0:4]
-        self.tg = temp[4:8]
-        self.coefs = self.calibrate_camera()
+        calibrating_data = temp[0:4]
+        tg_data = temp[4:8]
+        self.calibrate_camera(calibrating_data, tg_data)
+        self.data = []
 
-    def calibrate_camera(self):
+    def calibrate_camera(self, calibrating_data, tg_data):
+        """
+        :param calibrating_data: list of calibrating data
+        :param tg_data: list of calibrating tg
+        :return: coefficient linear equal
+        """
         try:
-            a = np.array([[1, self.data_cal[0], self.data_cal[0] ** 2, self.data_cal[0] ** 3],
-                          [1, self.data_cal[1], self.data_cal[1] ** 2, self.data_cal[1] ** 3],
-                          [1, self.data_cal[2], self.data_cal[2] ** 2, self.data_cal[2] ** 3],
-                          [1, self.data_cal[3], self.data_cal[3] ** 2, self.data_cal[3] ** 3]])
-            b = np.array([self.tg[0], self.tg[1], self.tg[2], self.tg[3]])
+            a = np.array([[1, calibrating_data[0], calibrating_data[0] ** 2, calibrating_data[0] ** 3],
+                          [1, calibrating_data[1], calibrating_data[1] ** 2, calibrating_data[1] ** 3],
+                          [1, calibrating_data[2], calibrating_data[2] ** 2, calibrating_data[2] ** 3],
+                          [1, calibrating_data[3], calibrating_data[3] ** 2, calibrating_data[3] ** 3]])
+            b = np.array([tg_data[0], tg_data[1], tg_data[2], tg_data[3]])
         except IndexError:
             print("Неверно записаны данные. Создайте новый инстанс")
             del self
