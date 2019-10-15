@@ -39,8 +39,8 @@ class Example(Frame):
         self.moving_ball = self.create_wire(-600, 6000, WIRE_WIDTH / 2, fill='red')
         self.static_ball = self.create_wire(0, 6600, WIRE_WIDTH / 2, fill='green')
         self.create_camera(-600, 0, 29.184, 75, 8)
-        self.create_camera(0, 0, 29.184, 75, 0)
-        self.create_camera(600, 0, 29.184, 75, -8)
+        #self.create_camera(0, 0, 29.184, 75, 0)
+        #self.create_camera(600, 0, 29.184, 75, -8)
 
         # Binding buttons
         self.canvas.focus_set()
@@ -53,15 +53,15 @@ class Example(Frame):
         self.canvas.bind('w', lambda event: self.move_up(self.static_ball))
         self.canvas.bind('s', lambda event: self.move_down(self.static_ball))
 
-        # cameraBorder()
+        self.cameraBorder()
 
         # Передаем класс камеры, в котором хранится вся информация о камере
         res1 = self.oscilloscope(list(self.all_camera.items())[0][1])
-        res2 = self.oscilloscope(list(self.all_camera.items())[1][1])
-        res3 = self.oscilloscope(list(self.all_camera.items())[2][1])
+        #res2 = self.oscilloscope(list(self.all_camera.items())[1][1])
+        #res3 = self.oscilloscope(list(self.all_camera.items())[2][1])
         print(len(res1))
-        print(len(res2))
-        print(len(res3))
+        #print(len(res2))
+        #print(len(res3))
         x = list(range(0, 3648, 1))
         #plt.subplot(3, 1, 1)
         #plt.plot(x, res1)
@@ -155,19 +155,19 @@ class Example(Frame):
 
     def cameraBorder(self):
         self.canvas.create_line(self.all_camera[0].zero_x, self.all_camera[0].zero_y,
-                                self.all_camera[0].xLeftRay, self.all_camera[0].yRay, fill='red')
+                                self.all_camera[0].xLeftRay, self.all_camera[0].yLeftRay, fill='red')
         self.canvas.create_line(self.all_camera[0].zero_x, self.all_camera[0].zero_y,
-                                self.all_camera[0].xRightRay, self.all_camera[0].yRay, fill='red')
+                                self.all_camera[0].xRightRay, self.all_camera[0].yRightRay, fill='red')
 
-        self.canvas.create_line(self.all_camera[1].zero_x, self.all_camera[1].zero_y,
-                                self.all_camera[1].xLeftRay, self.all_camera[1].yRay, fill='red')
-        self.canvas.create_line(self.all_camera[1].zero_x, self.all_camera[1].zero_y,
-                                self.all_camera[1].xRightRay, self.all_camera[1].yRay, fill='red')
+        #self.canvas.create_line(self.all_camera[1].zero_x, self.all_camera[1].zero_y,
+        #                        self.all_camera[1].xLeftRay, self.all_camera[1].yRay, fill='red')
+        #self.canvas.create_line(self.all_camera[1].zero_x, self.all_camera[1].zero_y,
+        #                        self.all_camera[1].xRightRay, self.all_camera[1].yRay, fill='red')
 
-        self.canvas.create_line(self.all_camera[2].zero_x, self.all_camera[2].zero_y,
-                                self.all_camera[2].xLeftRay, self.all_camera[2].yRay, fill='red')
-        self.canvas.create_line(self.all_camera[2].zero_x, self.all_camera[2].zero_y,
-                                self.all_camera[2].xRightRay, self.all_camera[2].yRay, fill='red')
+        #self.canvas.create_line(self.all_camera[2].zero_x, self.all_camera[2].zero_y,
+        #                        self.all_camera[2].xLeftRay, self.all_camera[2].yRay, fill='red')
+        #self.canvas.create_line(self.all_camera[2].zero_x, self.all_camera[2].zero_y,
+        #                        self.all_camera[2].xRightRay, self.all_camera[2].yRay, fill='red')
 
 def main():
     root = Tk()

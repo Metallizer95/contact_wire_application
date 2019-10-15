@@ -25,17 +25,19 @@ def rotate(points, angle, center):
     return new_points
 
 class Camera_object:
-    def __init__(self, points):
+    def __init__(self, points, angle):
         self.top_left = points[0]
         self.top_right = points[1]
         self.bot_right = points[2]
         self.bot_left = points[3]
+        self.angle = angle
         self.xRightRay = None
         self.xLeftRay = None
         # Набор лучей
         self.zero_x = (self.top_left[0] + self.top_right[0])/2
         self.zero_y = (self.top_left[1] + self.top_right[1])/2
-        self.yRay = self.zero_y - 1000
+        self.yLeftRay = self.zero_y - 200
+        self.yRightRay = self.yLeftRay + 1824*math.sin(math.radians(self.angle))*(200*0.008)/75
         self.ray_cords()
 
     def change_center(self, x, y):
@@ -46,11 +48,11 @@ class Camera_object:
         k1, b1 = mf.equationLine(self.zero_x, self.zero_y, self.bot_left[0], self.bot_left[1])
         k2, b2 = mf.equationLine(self.zero_x, self.zero_y, self.bot_right[0], self.bot_right[1])
         try:
-            self.xRightRay = (self.yRay - b1)/k1
+            self.xRightRay = (self.yRightRay - b1)/k1
         except ZeroDivisionError:
             self.xRightRay = 0
         try:
-            self.xLeftRay = (self.yRay - b2)/k2
+            self.xLeftRay = (self.yLeftRay - b2)/k2
         except ZeroDivisionError:
             self.xLeftRay = 0
 
@@ -77,7 +79,7 @@ class Canvas_object(tk.Canvas):
         center = [cordx, cordy - height/2]
         new_points = rotate([points_left_top, points_right_top, points_right_bot, points_left_bot], angle, center)
 
-        camera = Camera_object(new_points)
+        camera = Camera_object(new_points, angle)
         camera.change_center((new_points[1][0] + new_points[0][0])/2, (new_points[1][1] + new_points[0][1])/2)
         return self.create_polygon(new_points, **config), camera
 
@@ -89,15 +91,22 @@ class Canvas_object(tk.Canvas):
         y_right = circle.y + circle.r
         return self.create_oval(x_left, y_left, x_right, y_right, **config), circle
 
-    @staticmethod
-    def move_ray(camera):
+    #@staticmethod
+    def move_ray(self, camera):
         xLeftRay = camera.xLeftRay
         xRightRay = camera.xRightRay
-        yRay = camera.yRay
+        yRay = camera.yLeftRay
         coefs = {}
+        delta = 200*0.008/75
+        x_offset = math.cos(math.radians(camera.angle))*delta
+        y_offset = math.sin(math.radians(camera.angle))*delta
         iteration_var = 0
         while xLeftRay <= xRightRay:
             coefs[iteration_var] = mf.equationLine(camera.zero_x, camera.zero_y, xLeftRay, yRay)
-            xLeftRay += 0.10667
+            if iteration_var == 0 or iteration_var == 3647:
+                self.create_line(camera.zero_x, camera.zero_y, xLeftRay, yRay)
+                print(xLeftRay, xRightRay)
+            xLeftRay += x_offset
+            yRay += y_offset
             iteration_var += 1
         return coefs
