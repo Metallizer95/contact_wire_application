@@ -33,16 +33,21 @@ class Camera_object:
         self.angle = angle
         self.xRightRay = None
         self.xLeftRay = None
+
         # Набор лучей
+        self.high = 1000  # Высота лучей камеры
+        self.delta = self.high * 0.008 / 75  # Шаг луча
+
+        # Точка фокуса
         self.zero_x = (self.top_left[0] + self.top_right[0])/2
         self.zero_y = (self.top_left[1] + self.top_right[1])/2
-        self.yLeftRay = self.zero_y - 200
-        self.yRightRay = self.yLeftRay + 1824*math.sin(math.radians(self.angle))*(200*0.008)/75
+        
+        #  Конечная точка луча
+        self.yLeftRay = (self.zero_y - self.high*math.cos(math.radians(self.angle)) -
+                         1824*math.sin(math.radians(self.angle))*self.delta)
+        self.yRightRay = self.yLeftRay + 3648*math.sin(math.radians(self.angle))*self.delta
         self.ray_cords()
-
-    def change_center(self, x, y):
-        self.zero_x = x
-        self.zero_y = y
+        print(self.xLeftRay, self.xRightRay)
 
     def ray_cords(self):
         k1, b1 = mf.equationLine(self.zero_x, self.zero_y, self.bot_left[0], self.bot_left[1])
@@ -80,7 +85,6 @@ class Canvas_object(tk.Canvas):
         new_points = rotate([points_left_top, points_right_top, points_right_bot, points_left_bot], angle, center)
 
         camera = Camera_object(new_points, angle)
-        camera.change_center((new_points[1][0] + new_points[0][0])/2, (new_points[1][1] + new_points[0][1])/2)
         return self.create_polygon(new_points, **config), camera
 
     def create_circle(self, x, y, r, **config):
@@ -91,21 +95,17 @@ class Canvas_object(tk.Canvas):
         y_right = circle.y + circle.r
         return self.create_oval(x_left, y_left, x_right, y_right, **config), circle
 
-    #@staticmethod
-    def move_ray(self, camera):
+    @staticmethod
+    def move_ray(camera):
         xLeftRay = camera.xLeftRay
         xRightRay = camera.xRightRay
         yRay = camera.yLeftRay
         coefs = {}
-        delta = 200*0.008/75
-        x_offset = math.cos(math.radians(camera.angle))*delta
-        y_offset = math.sin(math.radians(camera.angle))*delta
+        x_offset = math.cos(math.radians(camera.angle))*camera.delta
+        y_offset = math.sin(math.radians(camera.angle))*camera.delta
         iteration_var = 0
-        while xLeftRay <= xRightRay:
+        while round(xLeftRay, 3) < round(xRightRay, 3):
             coefs[iteration_var] = mf.equationLine(camera.zero_x, camera.zero_y, xLeftRay, yRay)
-            if iteration_var == 0 or iteration_var == 3647:
-                self.create_line(camera.zero_x, camera.zero_y, xLeftRay, yRay)
-                print(xLeftRay, xRightRay)
             xLeftRay += x_offset
             yRay += y_offset
             iteration_var += 1
