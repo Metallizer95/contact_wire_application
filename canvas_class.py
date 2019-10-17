@@ -35,6 +35,7 @@ class Camera_object:
         self.xLeftRay = None
 
         # Набор лучей
+        self.coefs = {}
         self.high = 1000  # Высота лучей камеры
         self.delta = self.high * 0.008 / 75  # Шаг луча
 
@@ -47,7 +48,6 @@ class Camera_object:
                          1824*math.sin(math.radians(self.angle))*self.delta)
         self.yRightRay = self.yLeftRay + 3648*math.sin(math.radians(self.angle))*self.delta
         self.ray_cords()
-        print(self.xLeftRay, self.xRightRay)
 
     def ray_cords(self):
         k1, b1 = mf.equationLine(self.zero_x, self.zero_y, self.bot_left[0], self.bot_left[1])
@@ -67,6 +67,13 @@ class Wire_object:
         self.y = MAX_H - y*SCALE
         self.r = r*SCALE
         self.all_data = [self.x, self.y, self.r]
+        print(self.all_data)
+
+    def change_data(self, x, y):
+        self.x = x
+        self.y = y
+        self.all_data[0] = x
+        self.all_data[1] = y
 
 class Canvas_object(tk.Canvas):
     def __init__(self, parent=None, **config):

@@ -3,7 +3,7 @@ from camera import *
 from canvas_class import *
 import matplotlib.pyplot as plt
 
-WIRE_WIDTH = 40
+WIRE_WIDTH = 14
 
 
 class Text_tk(Text):
@@ -22,6 +22,10 @@ class Example(Frame):
         self.canvas = Canvas_object(self, height=1020, width=240)
         self.information_field = Text_tk(self)
 
+        # Создание поля для рисования графиков
+        plt.interactive(True)
+        self.fig, (self.ax1, self.ax2, self.ax3) = plt.subplots(3, 1)
+
         # Хэш таблицы всех камер и проводов
         self.all_camera = {}
         self.all_wire = {}
@@ -38,11 +42,11 @@ class Example(Frame):
         # Создание объектов взаимодействия
         self.moving_ball = self.create_wire(-600, 6000, WIRE_WIDTH / 2, fill='red')
         self.static_ball = self.create_wire(0, 6600, WIRE_WIDTH / 2, fill='green')
-        self.create_camera(-600, 0, 29.184, 75, 8)
+        self.create_camera(-700, 0, 29.184, 75, 8)
         self.create_camera(0, 0, 29.184, 75, 0)
-        self.create_camera(600, 0, 29.184, 75, -8)
+        self.create_camera(700, 0, 29.184, 75, -8)
 
-        # Binding buttons
+        # Биндинг кнопок передвижения шариков
         self.canvas.focus_set()
         self.canvas.bind('<Left>', lambda event: self.move_left(self.moving_ball))
         self.canvas.bind('<Right>', lambda event: self.move_right(self.moving_ball))
@@ -54,45 +58,51 @@ class Example(Frame):
         self.canvas.bind('s', lambda event: self.move_down(self.static_ball))
 
         self.cameraBorder()
+        self.create_graphs()
 
-        # Передаем класс камеры, в котором хранится вся информация о камере
+    def create_graphs(self):
         res1 = self.oscilloscope(list(self.all_camera.items())[0][1])
         res2 = self.oscilloscope(list(self.all_camera.items())[1][1])
         res3 = self.oscilloscope(list(self.all_camera.items())[2][1])
-        print(len(res1))
-        print(len(res2))
-        print(len(res3))
         x = list(range(0, 3648, 1))
-        plt.subplot(3, 1, 1)
-        plt.plot(x, res1)
-        plt.subplot(3, 1, 2)
-        plt.plot(x, res2)
-        plt.subplot(3, 1, 3)
-        plt.plot(x, res3)
+        plt.gcf()
+        self.ax1.clear()
+        self.ax2.clear()
+        self.ax3.clear()
+        self.ax1.plot(x, res1)
+        self.ax2.plot(x, res2)
+        self.ax3.plot(x, res3)
+        plt.draw()
         plt.show()
 
     def move_right(self, ball):
         if self.canvas.coords(ball)[2] <= START + WIDTH:
-            self.canvas.move(ball, 0.75, 0)
+            self.move_wire(ball, 5, 0)
+            self.create_graphs()
 
     def move_left(self, ball):
         if self.canvas.coords(ball)[0] >= 15:
-            self.canvas.move(ball, -0.75, 0)
+            self.move_wire(ball, -5, 0)
+            self.create_graphs()
 
     def move_up(self, ball):
         if self.canvas.coords(ball)[1] >= 0:
-            self.canvas.move(ball, 0, -0.75)
+            self.move_wire(ball, 0, 5)
+            self.create_graphs()
 
     def move_down(self, ball):
         if self.canvas.coords(ball)[3] <= MAX_H - 5400 * SCALE:
-            self.canvas.move(ball, 0, 0.75)
+            self.move_wire(ball, 0, -5)
+            self.create_graphs()
 
     def oscilloscope(self, camera):
+        """Формирование массива данных, полученных с камеры"""
         osc = []
-        coefs = self.canvas.move_ray(camera)
-        for item in coefs.keys():
-            if (mf.check_line_in_circle(self.all_wire[self.moving_ball].all_data, coefs[item][0], coefs[item][1]) or
-                    mf.check_line_in_circle(self.all_wire[self.static_ball].all_data, coefs[item][0], coefs[item][1])):
+        if not camera.coefs:
+            camera.coefs = self.canvas.move_ray(camera)
+        for item in camera.coefs.keys():
+            if (mf.check_line_in_circle(self.all_wire[self.moving_ball].all_data, camera.coefs[item][0], camera.coefs[item][1]) or
+                    mf.check_line_in_circle(self.all_wire[self.static_ball].all_data, camera.coefs[item][0], camera.coefs[item][1])):
                 osc.append(1)
             else:
                 osc.append(0)
@@ -138,22 +148,28 @@ class Example(Frame):
         """
 
     def create_wire(self, xCord, yCord, radius, **config):
-        """
-        Функция построения на холсте объекта провод и запись его внутренних значений в хэш таблицу
-        """
+        """Функция построения на холсте объекта провод и запись его внутренних значений в хэш таблицу"""
         wire = self.canvas.create_circle(xCord, yCord, radius, **config)
         self.all_wire[wire[0]] = wire[1]
         return wire[0]
 
+    def move_wire(self, wire, x, y):
+        """Передвигает провод на холсте и переписывает его координаты"""
+        x = x*SCALE
+        y = y*SCALE
+        self.canvas.move(wire, x, -y)
+        xCenter = self.canvas.coords(wire)[0] + SCALE*WIRE_WIDTH/2
+        yCenter = self.canvas.coords(wire)[1] + SCALE * WIRE_WIDTH / 2
+        self.all_wire[wire].change_data(xCenter, yCenter)
+
     def create_camera(self, xCenter, yCenter, w, h, angle, **config):
-        """
-        Функция построения на холсте объекта камера и запись характеристик в хэш таблицу
-        """
+        """ Функция построения на холсте объекта камера и запись характеристик в хэш таблицу"""
         l = len(self.all_camera)
         camera = self.canvas.create_camera(xCenter, yCenter, w, h, angle, **config)
         self.all_camera[l] = camera[1]
 
     def cameraBorder(self):
+        """Показать границы видимости камер"""
         self.canvas.create_line(self.all_camera[0].zero_x, self.all_camera[0].zero_y,
                                 self.all_camera[0].xLeftRay, self.all_camera[0].yLeftRay, fill='red')
         self.canvas.create_line(self.all_camera[0].zero_x, self.all_camera[0].zero_y,
@@ -168,6 +184,7 @@ class Example(Frame):
                                 self.all_camera[2].xLeftRay, self.all_camera[2].yLeftRay, fill='red')
         self.canvas.create_line(self.all_camera[2].zero_x, self.all_camera[2].zero_y,
                                 self.all_camera[2].xRightRay, self.all_camera[2].yRightRay, fill='red')
+
 
 def main():
     root = Tk()
