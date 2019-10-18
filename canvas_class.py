@@ -36,30 +36,19 @@ class Camera_object:
 
         # Набор лучей
         self.coefs = {}
-        self.high = 1000  # Высота лучей камеры
-        self.delta = self.high * 0.008 / 75  # Шаг луча
+        self.delta = 0.008*SCALE   # Шаг луча
 
         # Точка фокуса
         self.zero_x = (self.top_left[0] + self.top_right[0])/2
         self.zero_y = (self.top_left[1] + self.top_right[1])/2
         
         #  Конечная точка луча
-        self.yLeftRay = (self.zero_y - self.high*math.cos(math.radians(self.angle)) -
-                         1824*math.sin(math.radians(self.angle))*self.delta)
-        self.yRightRay = self.yLeftRay + 3648*math.sin(math.radians(self.angle))*self.delta
-        self.ray_cords()
+        self.yLeftRay = self.bot_right[1]
+        self.xLeftRay = self.bot_right[0]
 
-    def ray_cords(self):
-        k1, b1 = mf.equationLine(self.zero_x, self.zero_y, self.bot_left[0], self.bot_left[1])
-        k2, b2 = mf.equationLine(self.zero_x, self.zero_y, self.bot_right[0], self.bot_right[1])
-        try:
-            self.xRightRay = (self.yRightRay - b1)/k1
-        except ZeroDivisionError:
-            self.xRightRay = 0
-        try:
-            self.xLeftRay = (self.yLeftRay - b2)/k2
-        except ZeroDivisionError:
-            self.xLeftRay = 0
+        self.yRightRay = self.bot_left[1]
+        self.xRightRay = self.bot_left[0]
+
 
 class Wire_object:
     def __init__(self, x, y, r):
@@ -111,9 +100,10 @@ class Canvas_object(tk.Canvas):
         x_offset = math.cos(math.radians(camera.angle))*camera.delta
         y_offset = math.sin(math.radians(camera.angle))*camera.delta
         iteration_var = 0
-        while round(xLeftRay, 3) < round(xRightRay, 3):
+        while round(xLeftRay, 3) > round(xRightRay, 3):
             coefs[iteration_var] = mf.equationLine(camera.zero_x, camera.zero_y, xLeftRay, yRay)
-            xLeftRay += x_offset
-            yRay += y_offset
+            xLeftRay -= x_offset
+            yRay -= y_offset
             iteration_var += 1
+        print(iteration_var)
         return coefs
