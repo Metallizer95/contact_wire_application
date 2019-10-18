@@ -37,14 +37,15 @@ def detectAlg(detectionVector, demask=demask):
             count += 1
         elif not sample and count:
             if count <= 25:
-                centerObjects.append(k - count/2)
+                centerObjects.append(k - int(count/2))
             elif count > 25 and demask:
-                centerObjects.append(k - LenHalfObj)
-                centerObjects.append(k - count + LenHalfObj)
+                centerObjects.append(int(k - LenHalfObj))
+                centerObjects.append(int(k - count + LenHalfObj))
             else:
                 # Если объект превышает значение 25 пикселов, а нет режима демаскирования, то объект пропускается
                 pass
             count = 0
+    centerObjects.reverse()
     return centerObjects
 
 def cameraCalibrating(valuePixelCal, tgDataCal):

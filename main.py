@@ -1,5 +1,4 @@
 from tkinter import *
-from camera import *
 from canvas_class import *
 import matplotlib.pyplot as plt
 
@@ -42,9 +41,9 @@ class Example(Frame):
         # Создание объектов взаимодействия
         self.moving_ball = self.create_wire(-600, 6000, WIRE_WIDTH / 2, fill='red')
         self.static_ball = self.create_wire(0, 6600, WIRE_WIDTH / 2, fill='green')
-        self.create_camera(-700, 0, 29.184, 75, 8)
+        self.create_camera(-700, 0, 29.184, 75, 7.4)
         self.create_camera(0, 0, 29.184, 75, 0)
-        self.create_camera(700, 0, 29.184, 75, -8)
+        self.create_camera(700, 0, 29.184, 75, -7.4)
 
         # Биндинг кнопок передвижения шариков
         self.canvas.focus_set()
