@@ -25,7 +25,9 @@ def equationLine(x1, y1, x2, y2):
         k = (y2 - y1) / (x2 - x1)
     except ZeroDivisionError:
         k = 0
-    b = y1 - k * x1
+        b = 1
+    else:
+        b = y1 - k * x1
     return k, b
 
 

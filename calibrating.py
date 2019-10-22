@@ -1,13 +1,12 @@
 """
 Калбировка представляет собой вычисление координат эквидистантных объектов на заданной высоте
 """
-from main import WIRE_WIDTH
 import tkinter as tk
 import detectionAlg as detect
 import canvas_class as cc
 import math_functions as mf
 H = 5400
-
+WIRE_WIDTH = 14*0.15
 class Calibrating(tk.Frame):
     def __init__(self, parent=None):
         tk.Frame.__init__(self, parent)
@@ -26,9 +25,9 @@ class Calibrating(tk.Frame):
         self.ball_2nd = self.create_wire(-300, H, WIRE_WIDTH / 2)
         self.ball_3rd = self.create_wire(300, H, WIRE_WIDTH / 2)
         self.ball_4th = self.create_wire(600, H, WIRE_WIDTH / 2)
-        self.create_camera(-700, 0, 29.184, 75, 7.4)
+        self.create_camera(-700, 0, 29.184, 75, 7.38604)
         self.create_camera(0, 0, 29.184, 75, 0)
-        self.create_camera(700, 0, 29.184, 75, -7.4)
+        self.create_camera(700, 0, 29.184, 75, -7.38604)
 
         self.create_graphs()
 
@@ -36,10 +35,6 @@ class Calibrating(tk.Frame):
         self.arrowCamera1 = self.oscilloscope(list(self.all_camera.items())[0][1])
         self.arrowCamera2 = self.oscilloscope(list(self.all_camera.items())[1][1])
         self.arrowCamera3 = self.oscilloscope(list(self.all_camera.items())[2][1])
-        with open('data.txt', 'w') as f:
-            for i, k in enumerate(self.arrowCamera1):
-                f.write("{0} -- {1}\n".format(i, k))
-
 
     def oscilloscope(self, camera):
         """Формирование массива данных, полученных с камеры"""
@@ -72,16 +67,17 @@ class Calibrating(tk.Frame):
     def getCoefficient(self):
         """Вычисление коэффициентов калибровки"""
         leftCameraObj = detect.detectAlg(self.arrowCamera1, demask=detect.demask)
-        print(leftCameraObj)
         tgLeftCamera = [0.018518518518518517, 0.07407407407407407, 0.18518518518518517, 0.24074074074074073]
 
         centerCameraObj = detect.detectAlg(self.arrowCamera2, demask=detect.demask)
-        print(centerCameraObj)
+        centerCameraObj.remove(1824)
         tgCentreCamera = [0.1111111111111111, 0.05555555555555555, -0.05555555555555555, -0.1111111111111111]
 
         rightCameraObj = detect.detectAlg(self.arrowCamera3, demask=detect.demask)
-        print(rightCameraObj)
         tgRightCamera = [0.24074074074074073, 0.18518518518518517, 0.07407407407407407, 0.018518518518518517]
+        print(leftCameraObj)
+        print(centerCameraObj)
+        print(rightCameraObj)
 
         leftCoefficients = detect.cameraCalibrating(leftCameraObj, tgLeftCamera)
         centerCoefficients = detect.cameraCalibrating(centerCameraObj, tgCentreCamera)

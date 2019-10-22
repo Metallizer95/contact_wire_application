@@ -56,7 +56,6 @@ class Wire_object:
         self.y = MAX_H - y*SCALE
         self.r = r*SCALE
         self.all_data = [self.x, self.y, self.r]
-        print(self.all_data)
 
     def change_data(self, x, y):
         self.x = x
@@ -73,11 +72,12 @@ class Canvas_object(tk.Canvas):
         cordy = MAX_H - cordy * SCALE
         width = width * SCALE
         height = height * SCALE
-        points_left_top = [cordx - width/2, cordy - height]
-        points_right_top = [cordx + width/2, cordy - height]
-        points_left_bot = [cordx - width/2, cordy]
-        points_right_bot = [cordx + width/2, cordy]
-        center = [cordx, cordy - height/2]
+
+        points_left_top = [cordx - width/2, cordy]
+        points_right_top = [cordx + width/2, cordy]
+        points_left_bot = [cordx - width/2, cordy + height]
+        points_right_bot = [cordx + width/2, cordy + height]
+        center = [cordx, cordy]
         new_points = rotate([points_left_top, points_right_top, points_right_bot, points_left_bot], angle, center)
 
         camera = Camera_object(new_points, angle)
@@ -99,11 +99,10 @@ class Canvas_object(tk.Canvas):
         coefs = {}
         x_offset = math.cos(math.radians(camera.angle))*camera.delta
         y_offset = math.sin(math.radians(camera.angle))*camera.delta
-        iteration_var = 0
+        iteration_var = 3648
         while round(xLeftRay, 3) > round(xRightRay, 3):
             coefs[iteration_var] = mf.equationLine(camera.zero_x, camera.zero_y, xLeftRay, yRay)
             xLeftRay -= x_offset
             yRay -= y_offset
-            iteration_var += 1
-        print(iteration_var)
+            iteration_var -= 1
         return coefs

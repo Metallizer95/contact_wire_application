@@ -96,7 +96,7 @@ def bypass(cam1, cam2, cam3):
                         d[amountObj] = DetectionObject()
                         d[amountObj].find_height(camera1[i], camera3[k])
                         d[amountObj].find_zigzag(camera1[i], camera3[k])
-                        d[amountObj].eps = eps*AVERAGE_H
+                        d[amountObj].eps = eps
                         amountObj += 1
         if amountObj >= maxAmountWires or eps == MAX_EPS:
             break

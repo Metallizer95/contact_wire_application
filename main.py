@@ -1,9 +1,10 @@
 from tkinter import *
 from canvas_class import *
+from calibrating import getCalibratingCoefficient
 import matplotlib.pyplot as plt
-
+import detectionAlg
 WIRE_WIDTH = 14
-
+DEMASK = True
 
 class Text_tk(Text):
     def __init__(self, parent=None, **config):
@@ -12,6 +13,7 @@ class Text_tk(Text):
     def new_text(self, row, text):
         self.delete(row, END)
         self.insert(row, text)
+        return row
 
 
 class Example(Frame):
@@ -41,9 +43,9 @@ class Example(Frame):
         # Создание объектов взаимодействия
         self.moving_ball = self.create_wire(-600, 6000, WIRE_WIDTH / 2, fill='red')
         self.static_ball = self.create_wire(0, 6600, WIRE_WIDTH / 2, fill='green')
-        self.create_camera(-700, 0, 29.184, 75, 7.4)
+        self.create_camera(-700, 0, 29.184, 75, 7.38604)
         self.create_camera(0, 0, 29.184, 75, 0)
-        self.create_camera(700, 0, 29.184, 75, -7.4)
+        self.create_camera(700, 0, 29.184, 75, -7.38604)
 
         # Биндинг кнопок передвижения шариков
         self.canvas.focus_set()
@@ -56,21 +58,24 @@ class Example(Frame):
         self.canvas.bind('w', lambda event: self.move_up(self.static_ball))
         self.canvas.bind('s', lambda event: self.move_down(self.static_ball))
 
-        self.cameraBorder()
         self.create_graphs()
+        self.getInformation()
+        self.show_information_regarding_wire()
 
     def create_graphs(self):
-        res1 = self.oscilloscope(list(self.all_camera.items())[0][1])
-        res2 = self.oscilloscope(list(self.all_camera.items())[1][1])
-        res3 = self.oscilloscope(list(self.all_camera.items())[2][1])
+        self.res1 = self.oscilloscope(list(self.all_camera.items())[0][1])
+        self.res2 = self.oscilloscope(list(self.all_camera.items())[1][1])
+        if self.res2[1823] and (not self.res2[1822] and not self.res2[1824]):
+            self.res2[1823] = 0
+        self.res3 = self.oscilloscope(list(self.all_camera.items())[2][1])
         x = list(range(0, 3648, 1))
         plt.gcf()
         self.ax1.clear()
         self.ax2.clear()
         self.ax3.clear()
-        self.ax1.plot(x, res1)
-        self.ax2.plot(x, res2)
-        self.ax3.plot(x, res3)
+        self.ax1.plot(x, self.res1)
+        self.ax2.plot(x, self.res2)
+        self.ax3.plot(x, self.res3)
         plt.draw()
         plt.show()
 
@@ -78,21 +83,29 @@ class Example(Frame):
         if self.canvas.coords(ball)[2] <= START + WIDTH:
             self.move_wire(ball, 5, 0)
             self.create_graphs()
+            self.getInformation()
+            self.show_information_regarding_wire()
 
     def move_left(self, ball):
         if self.canvas.coords(ball)[0] >= 15:
             self.move_wire(ball, -5, 0)
             self.create_graphs()
+            self.getInformation()
+            self.show_information_regarding_wire()
 
     def move_up(self, ball):
         if self.canvas.coords(ball)[1] >= 0:
             self.move_wire(ball, 0, 5)
             self.create_graphs()
+            self.getInformation()
+            self.show_information_regarding_wire()
 
     def move_down(self, ball):
         if self.canvas.coords(ball)[3] <= MAX_H - 5400 * SCALE:
             self.move_wire(ball, 0, -5)
             self.create_graphs()
+            self.getInformation()
+            self.show_information_regarding_wire()
 
     def oscilloscope(self, camera):
         """Формирование массива данных, полученных с камеры"""
@@ -108,46 +121,26 @@ class Example(Frame):
         osc.reverse()
         return osc
 
-    def change_data(self):
-        """
-        Функция, вычисляющая параметры контактного провода;
-        Все значения вывод в текст-бокс UI
-        Калибровочные данные для высоты 5400 мм
+    def show_information_regarding_wire(self):
+        row = self.information_field.new_text(1.0, "\nДемаскирование отсутствует")
+        for i in range(self.amountWires):
+            row = self.information_field.new_text(row + 1, "\nОбъект {0}".format(i + 1))
+            row = self.information_field.new_text(row + 1, "\n{}".format(self.detectedWires[i].h))
+            row = self.information_field.new_text(row + 1, "\n{}".format(self.detectedWires[i].zigzag))
+            row = self.information_field.new_text(row + 1, "\n{}".format(self.detectedWires[i].eps))
 
-        left_camera = Camera(2844, 2325, 1267, 725,
-                             0.018518518518518517, 0.07407407407407407, 0.18518518518518517, 0.24074074074074073)
-        central_camera = Camera(2841, 2320, 1280, 759,
-                                0.1111111111111111, 0.05555555555555555, -0.05555555555555555, -0.1111111111111111)
-        right_camera = Camera(2875, 2333, 1275, 756,
-                              0.24074074074074073, 0.18518518518518517, 0.07407407407407407, 0.018518518518518517)
-
-        # Формирование данных камеры, детектируюя положение луча центра объекта
-        left_camera.data = [pixel_in_camera(x[1]/SCALE, x[0]/SCALE, -700) for x in self.left_ray_coord]
-        right_camera.data = [pixel_in_camera(x[1]/SCALE, x[0]/SCALE, 700) for x in self.right_ray_coord]
-        central_camera.data = [pixel_in_camera(x[1]/SCALE, x[0]/SCALE, 0) for x in self.central_ray_coord]
-        D, detection_wires = bypass(left_camera, central_camera, right_camera)
-
-        mb_center_x = (self.canvas.coords(self.canvas.moving_ball)[0] + WIRE_WIDTH/2 - START)
-        mb_center_y = max_height - self.canvas.coords(self.canvas.moving_ball)[1] - WIRE_WIDTH/2
-        sb_center_x = (self.canvas.coords(self.canvas.static_ball)[0] + WIRE_WIDTH/2 - START)
-        sb_center_y = max_height - self.canvas.coords(self.canvas.static_ball)[1] - WIRE_WIDTH/2
-        self.information_field.new_text(1.0, "Координаты зеленого объекта: H - {0}, L - {1}".format(mb_center_y/SCALE,
-                                                                            int(abs(WIDTH/2 - mb_center_x)/SCALE)))
-        self.information_field.new_text(2.0, "\nКоординаты черного объекта: H - {0}, L - {1}".format(sb_center_y/SCALE,
-                                                                            int(abs(WIDTH/2 - sb_center_x)/SCALE)))
-        self.information_field.new_text(3.0, "\nОбнаруженных объектов = {0}".format(detection_wires))
-        self.information_field.new_text(4.0, "\nКоличество объектов левой камеры - {}".format(len(left_camera.data)))
-        self.information_field.new_text(5.0, "\nКоличество объектов центральной камеры - {}".format(len(central_camera.data)))
-        self.information_field.new_text(6.0, "\nКоличество объектов правой камеры - {}".format(len(right_camera.data)))
-        for wire in list(range(detection_wires)):
-            self.information_field.insert(7.0 + float(wire),
-                                          "\nОбъект {0}: Измеренные Зигзаг - {1}; Высота - {2}".format(wire + 1,
-                                                                                                       D[wire].zigzag,
-                                                                                                       D[wire].h))
-        """
+    def getInformation(self):
+        leftCalCoefs, centerCalCoefs, rightCalCoefs = getCalibratingCoefficient()
+        leftCamera = detectionAlg.Camera(leftCalCoefs)
+        centerCamera = detectionAlg.Camera(centerCalCoefs)
+        rightCamera = detectionAlg.Camera(rightCalCoefs)
+        leftCamera.data = detectionAlg.detectAlg(self.res1, demask=DEMASK)
+        centerCamera.data = detectionAlg.detectAlg(self.res2, demask=DEMASK)
+        rightCamera.data = detectionAlg.detectAlg(self.res3, demask=DEMASK)
+        self.detectedWires, self.amountWires = detectionAlg.bypass(leftCamera, centerCamera, rightCamera)
 
     def create_wire(self, xCord, yCord, radius, **config):
-        """Функция построения на холсте объекта провод и запись его внутренних значений в хэш таблицу"""
+        """Функция построения на холсте объекта провод и запись его параметров в хэш таблицу"""
         wire = self.canvas.create_circle(xCord, yCord, radius, **config)
         self.all_wire[wire[0]] = wire[1]
         return wire[0]
@@ -166,23 +159,6 @@ class Example(Frame):
         l = len(self.all_camera)
         camera = self.canvas.create_camera(xCenter, yCenter, w, h, angle, **config)
         self.all_camera[l] = camera[1]
-
-    def cameraBorder(self):
-        """Показать границы видимости камер"""
-        self.canvas.create_line(self.all_camera[0].zero_x, self.all_camera[0].zero_y,
-                                self.all_camera[0].xLeftRay, self.all_camera[0].yLeftRay, fill='red')
-        self.canvas.create_line(self.all_camera[0].zero_x, self.all_camera[0].zero_y,
-                                self.all_camera[0].xRightRay, self.all_camera[0].yRightRay, fill='red')
-
-        self.canvas.create_line(self.all_camera[1].zero_x, self.all_camera[1].zero_y,
-                                self.all_camera[1].xLeftRay, self.all_camera[1].yLeftRay, fill='red')
-        self.canvas.create_line(self.all_camera[1].zero_x, self.all_camera[1].zero_y,
-                                self.all_camera[1].xRightRay, self.all_camera[1].yRightRay, fill='red')
-
-        self.canvas.create_line(self.all_camera[2].zero_x, self.all_camera[2].zero_y,
-                                self.all_camera[2].xLeftRay, self.all_camera[2].yLeftRay, fill='red')
-        self.canvas.create_line(self.all_camera[2].zero_x, self.all_camera[2].zero_y,
-                                self.all_camera[2].xRightRay, self.all_camera[2].yRightRay, fill='red')
 
 
 def main():
